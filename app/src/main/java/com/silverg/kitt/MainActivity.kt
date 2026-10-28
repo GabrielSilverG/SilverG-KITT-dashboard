@@ -125,7 +125,56 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             p.strokeWidth = 2f
             c.drawRoundRect(x, y, r, b, 9f, 9f, p)
         }
+        private fun drawPortrait(canvas: Canvas) {
+            canvas.save()
+            canvas.scale(width / 430f, height / 900f)
+            canvas.drawColor(Color.rgb(3, 7, 15))
+            box(canvas, 9f, 9f, 421f, 891f, Color.rgb(45, 55, 72), true)
+            text(canvas, "SILVERG // KITT", 24f, 50f, 28f, red)
+            text(canvas, "RETRO DIGITAL COCKPIT / 1980s", 24f, 73f, 12f, muted)
+            text(canvas, SimpleDateFormat("dd.MM.yyyy  HH:mm:ss", Locale.getDefault()).format(Date()), 215f, 105f, 17f, cyan, true)
+            for (i in 0..13) {
+                val strength = (1f - abs(i / 13f - scanner) * 5f).coerceIn(.1f, 1f)
+                box(canvas, 23f + i * 28f, 129f, 45f + i * 28f, 153f,
+                    Color.rgb((90 + 165 * strength).toInt(), (10 + 30 * strength).toInt(), (20 + 45 * strength).toInt()))
+            }
+            box(canvas, 20f, 177f, 410f, 390f, panel)
+            text(canvas, "VELOCITY / GPS", 37f, 207f, 17f, muted)
+            text(canvas, if (demo) "088" else speed.roundToInt().toString().padStart(3, '0'), 200f, 331f, 116f, cyan, true)
+            text(canvas, "KM/H", 360f, 365f, 18f, cyan, true)
+            box(canvas, 20f, 404f, 410f, 655f, panel)
+            text(canvas, "NAVIGATION / COMPASS", 37f, 434f, 16f, muted)
+            val cx = 116f; val cy = 540f; val radius = 72f
+            p.reset(); p.isAntiAlias = true; p.color = cyan; p.style = Paint.Style.STROKE; p.strokeWidth = 2f
+            canvas.drawCircle(cx, cy, radius, p)
+            for (a in 0 until 360 step 30) {
+                val angle = Math.toRadians((a - 90).toDouble())
+                canvas.drawLine(cx + cos(angle).toFloat() * 61f, cy + sin(angle).toFloat() * 61f,
+                    cx + cos(angle).toFloat() * radius, cy + sin(angle).toFloat() * radius, p)
+            }
+            val bearing = if (demo) 315f else heading
+            val angle = Math.toRadians((bearing - 90).toDouble())
+            p.color = red; p.strokeWidth = 5f
+            canvas.drawLine(cx, cy, cx + cos(angle).toFloat() * 52f, cy + sin(angle).toFloat() * 52f, p)
+            text(canvas, "N", cx, 457f, 15f, amber, true)
+            text(canvas, "${bearing.roundToInt()}°", cx, 633f, 16f, cyan, true)
+            text(canvas, "SYSTEM", 220f, 477f, 16f, muted)
+            text(canvas, "BATTERY", 220f, 514f, 13f, muted)
+            text(canvas, "$battery%", 372f, 514f, 18f, cyan, true)
+            box(canvas, 220f, 526f, 382f, 539f, Color.rgb(40, 55, 70))
+            box(canvas, 220f, 526f, 220f + 162f * battery / 100f, 539f, if (battery < 20) red else cyan)
+            text(canvas, "GPS STATUS", 220f, 580f, 13f, muted)
+            text(canvas, if (demo) "DEMO" else if (gpsActive) "ACTIVE" else "WAITING", 220f, 609f, 19f, if (gpsActive && !demo) cyan else amber)
+            box(canvas, 20f, 675f, 410f, 735f, Color.rgb(18, 65, 52))
+            text(canvas, "[ SPOTIFY / MUSIC ]", 215f, 712f, 20f, cyan, true)
+            box(canvas, 20f, 747f, 410f, 807f, Color.rgb(24, 44, 73))
+            text(canvas, "[ BLUETOOTH ]", 215f, 784f, 20f, cyan, true)
+            box(canvas, 20f, 819f, 410f, 877f, Color.rgb(55, 22, 39))
+            text(canvas, if (demo) "[ LIVE GPS MODE ]" else "[ DEMO MODE ]", 215f, 855f, 19f, red, true)
+            canvas.restore()
+        }
         override fun onDraw(canvas: Canvas) {
+            if (height > width) { drawPortrait(canvas); return }
             super.onDraw(canvas)
             canvas.save()
             canvas.scale(width / 900f, height / 430f)
@@ -176,18 +225,29 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             canvas.restore()
         }
         override fun onTouchEvent(event: MotionEvent): Boolean {
-            if (event.action == MotionEvent.ACTION_UP) {
-                val x = event.x * 900f / width
-                val y = event.y * 430f / height
-                if (y in 345f..415f && x in 27f..227f) {
-                    openSpotify()
-                } else if (y in 345f..415f && x in 239f..445f) {
-                    openBluetooth()
-                } else if (x in 650f..875f && y in 345f..415f) {
-                    demo = !demo
-                    invalidate()
-                    performClick()
+            if (event.action == MotionEvent.ACTION_UP && width > 0 && height > 0) {
+                if (height > width) {
+                    val x = event.x * 430f / width
+                    val y = event.y * 900f / height
+                    if (x in 20f..410f) {
+                        when (y) {
+                            in 675f..735f -> openSpotify()
+                            in 747f..807f -> openBluetooth()
+                            in 819f..877f -> { demo = !demo; invalidate() }
+                        }
+                    }
+                } else {
+                    val x = event.x * 900f / width
+                    val y = event.y * 430f / height
+                    if (y in 345f..415f) {
+                        when (x) {
+                            in 27f..227f -> openSpotify()
+                            in 239f..445f -> openBluetooth()
+                            in 650f..875f -> { demo = !demo; invalidate() }
+                        }
+                    }
                 }
+                performClick()
             }
             return true
         }
