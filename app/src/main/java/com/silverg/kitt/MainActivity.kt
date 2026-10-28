@@ -82,7 +82,7 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
         toolbar.addView(control("<< KITT") { closeMap() }, LinearLayout.LayoutParams(0, 54.dp, 1f))
         toolbar.addView(control("NAVIGACIJA") {
             try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=46.0569,14.5058"))
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q="))
                     .setPackage("com.google.android.apps.maps"))
             } catch (_: Exception) {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps")))
