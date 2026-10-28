@@ -3,6 +3,9 @@ package com.silverg.kitt
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.content.pm.PackageManager
 import android.graphics.*
 import android.hardware.*
@@ -47,6 +50,18 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
         setContentView(screen)
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 17)
+    }
+    private fun openSpotify() {
+        try {
+            val launch = Intent(Intent.ACTION_VIEW, Uri.parse("spotify:"))
+                .setPackage("com.spotify.music")
+            startActivity(launch)
+        } catch (_: Exception) {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://open.spotify.com/")))
+        }
+    }
+    private fun openBluetooth() {
+        startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
     }
     private fun startGps() {
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
@@ -151,7 +166,11 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             box(canvas, 654f, 246f, 654f + 189f * battery / 100f, 259f, if (battery < 20) red else cyan)
             text(canvas, "GPS", 654f, 294f, 13f, muted)
             text(canvas, if (demo) "DEMO" else if (gpsActive) "ACTIVE" else "WAITING", 762f, 294f, 15f, if (gpsActive) cyan else amber)
-            text(canvas, if (demo) "DEMO MODE - SIMULATED SPEED" else "LIVE GPS VEHICLE DATA", 34f, 384f, 14f, if (demo) amber else muted)
+            box(canvas, 27f, 357f, 227f, 403f, Color.rgb(18, 65, 52))
+            text(canvas, "[ SPOTIFY ]", 127f, 386f, 18f, cyan, true)
+            box(canvas, 239f, 357f, 445f, 403f, Color.rgb(24, 44, 73))
+            text(canvas, "[ BLUETOOTH ]", 342f, 386f, 16f, cyan, true)
+            text(canvas, if (demo) "DEMO" else "LIVE GPS", 530f, 386f, 13f, if (demo) amber else muted, true)
             box(canvas, 650f, 357f, 863f, 403f, Color.rgb(55, 22, 39))
             text(canvas, if (demo) "[ LIVE MODE ]" else "[ DEMO MODE ]", 756f, 386f, 16f, red, true)
             canvas.restore()
@@ -160,7 +179,11 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             if (event.action == MotionEvent.ACTION_UP) {
                 val x = event.x * 900f / width
                 val y = event.y * 430f / height
-                if (x in 650f..875f && y in 345f..415f) {
+                if (y in 345f..415f && x in 27f..227f) {
+                    openSpotify()
+                } else if (y in 345f..415f && x in 239f..445f) {
+                    openBluetooth()
+                } else if (x in 650f..875f && y in 345f..415f) {
                     demo = !demo
                     invalidate()
                     performClick()
