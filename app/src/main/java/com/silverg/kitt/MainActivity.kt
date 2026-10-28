@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.provider.Settings
 import android.content.pm.PackageManager
@@ -28,6 +29,12 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
     private var scanner = 0f
     private var direction = 1f
     private var battery = 0
+    private fun toggleOrientation() {
+        val portrait = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+        val next = if (portrait) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        requestedOrientation = next
+        getSharedPreferences("dashboard", MODE_PRIVATE).edit().putInt("orientation", next).apply()
+    }
     private val tick = object : Runnable {
         override fun run() {
             scanner += direction * .055f
@@ -44,6 +51,7 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = 5894 or View.SYSTEM_UI_FLAG_FULLSCREEN
+        requestedOrientation = getSharedPreferences("dashboard", MODE_PRIVATE).getInt("orientation", ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
         gps = getSystemService(LOCATION_SERVICE) as LocationManager
         sensors = getSystemService(SENSOR_SERVICE) as SensorManager
         screen = Dash(this)
@@ -132,6 +140,8 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             box(canvas, 9f, 9f, 421f, 891f, Color.rgb(45, 55, 72), true)
             text(canvas, "SILVERG // KITT", 24f, 50f, 28f, red)
             text(canvas, "RETRO DIGITAL COCKPIT / 1980s", 24f, 73f, 12f, muted)
+            box(canvas, 299f, 23f, 405f, 65f, Color.rgb(24, 44, 73))
+            text(canvas, "ROTATE", 352f, 49f, 14f, cyan, true)
             text(canvas, SimpleDateFormat("dd.MM.yyyy  HH:mm:ss", Locale.getDefault()).format(Date()), 215f, 105f, 17f, cyan, true)
             for (i in 0..13) {
                 val strength = (1f - abs(i / 13f - scanner) * 5f).coerceIn(.1f, 1f)
@@ -182,6 +192,8 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             box(canvas, 12f, 12f, 888f, 418f, Color.rgb(45, 55, 72), true)
             text(canvas, "SILVERG // KITT", 32f, 48f, 27f, red)
             text(canvas, "RETRO DIGITAL COCKPIT  /  1980s EDITION", 32f, 69f, 12f, muted)
+            box(canvas, 750f, 58f, 865f, 86f, Color.rgb(24, 44, 73))
+            text(canvas, "ROTATE", 807f, 77f, 14f, cyan, true)
             text(canvas, SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(Date()), 860f, 48f, 16f, cyan, true)
             for (i in 0..16) {
                 val strength = (1f - abs(i / 16f - scanner) * 5f).coerceIn(.1f, 1f)
@@ -229,7 +241,9 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
                 if (height > width) {
                     val x = event.x * 430f / width
                     val y = event.y * 900f / height
-                    if (x in 20f..410f) {
+                    if (x in 299f..405f && y in 23f..65f) {
+                        toggleOrientation()
+                    } else if (x in 20f..410f) {
                         when (y) {
                             in 675f..735f -> openSpotify()
                             in 747f..807f -> openBluetooth()
@@ -239,7 +253,9 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
                 } else {
                     val x = event.x * 900f / width
                     val y = event.y * 430f / height
-                    if (y in 345f..415f) {
+                    if (x in 750f..865f && y in 58f..86f) {
+                        toggleOrientation()
+                    } else if (y in 345f..415f) {
                         when (x) {
                             in 27f..227f -> openSpotify()
                             in 239f..445f -> openBluetooth()
