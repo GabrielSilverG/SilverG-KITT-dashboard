@@ -13,6 +13,10 @@ import android.hardware.*
 import android.location.*
 import android.os.*
 import android.view.*
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.LinearLayout
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.*
@@ -26,6 +30,8 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
     private var heading = 0f
     private var gpsActive = false
     private var demo = false
+    private var mapView: WebView? = null
+    private var latestLocation: Location? = null
     private var scanner = 0f
     private var direction = 1f
     private var battery = 0
@@ -58,6 +64,57 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
         setContentView(screen)
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 17)
+    }
+    private fun openMap() {
+        if (mapView != null) return
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.rgb(3, 7, 15))
+        }
+        val toolbar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        fun control(title: String, action: () -> Unit): Button =
+            Button(this).apply {
+                text = title
+                setTextColor(Color.rgb(46, 225, 245))
+                setBackgroundColor(Color.rgb(28, 36, 55))
+                setOnClickListener { action() }
+            }
+        toolbar.addView(control("<< KITT") { closeMap() }, LinearLayout.LayoutParams(0, 54.dp, 1f))
+        toolbar.addView(control("NAVIGACIJA") {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=46.0569,14.5058"))
+                    .setPackage("com.google.android.apps.maps"))
+            } catch (_: Exception) {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps")))
+            }
+        }, LinearLayout.LayoutParams(0, 54.dp, 1f))
+        root.addView(toolbar)
+        val web = WebView(this)
+        web.settings.javaScriptEnabled = true
+        web.settings.domStorageEnabled = true
+        web.webViewClient = WebViewClient()
+        root.addView(web, LinearLayout.LayoutParams(-1, 0, 1f))
+        mapView = web
+        setContentView(root)
+        web.loadUrl("file:///android_asset/kitt-map.html")
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                latestLocation?.let { updateMapPosition(it) }
+            }
+        }
+    }
+    private val Int.dp: Int get() = (this * resources.displayMetrics.density).toInt()
+    private fun updateMapPosition(location: Location) {
+        mapView?.evaluateJavascript("setPosition(${location.latitude},${location.longitude},${location.accuracy})", null)
+    }
+    private fun closeMap() {
+        mapView?.destroy()
+        mapView = null
+        setContentView(screen)
+    }
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (mapView != null) closeMap() else super.onBackPressed()
     }
     private fun openSpotify() {
         try {
@@ -100,6 +157,8 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
         if (requestCode == 17 && results.any { it == PackageManager.PERMISSION_GRANTED }) startGps()
     }
     override fun onLocationChanged(location: Location) {
+        latestLocation = location
+        updateMapPosition(location)
         gpsActive = true
         speed = if (location.hasSpeed()) max(0f, location.speed * 3.6f) else 0f
         if (location.hasBearing() && speed > 3f) heading = location.bearing
@@ -180,7 +239,7 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             box(canvas, 20f, 747f, 410f, 807f, Color.rgb(24, 44, 73))
             text(canvas, "[ BLUETOOTH ]", 215f, 784f, 20f, cyan, true)
             box(canvas, 20f, 819f, 410f, 877f, Color.rgb(55, 22, 39))
-            text(canvas, if (demo) "[ LIVE GPS MODE ]" else "[ DEMO MODE ]", 215f, 855f, 19f, red, true)
+            text(canvas, "[ MAPS / NAV ]", 215f, 855f, 19f, red, true)
             canvas.restore()
         }
         override fun onDraw(canvas: Canvas) {
@@ -233,7 +292,7 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
             text(canvas, "[ BLUETOOTH ]", 342f, 386f, 16f, cyan, true)
             text(canvas, if (demo) "DEMO" else "LIVE GPS", 530f, 386f, 13f, if (demo) amber else muted, true)
             box(canvas, 650f, 357f, 863f, 403f, Color.rgb(55, 22, 39))
-            text(canvas, if (demo) "[ LIVE MODE ]" else "[ DEMO MODE ]", 756f, 386f, 16f, red, true)
+            text(canvas, "[ MAPS ]", 756f, 386f, 18f, red, true)
             canvas.restore()
         }
         override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -247,7 +306,7 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
                         when (y) {
                             in 675f..735f -> openSpotify()
                             in 747f..807f -> openBluetooth()
-                            in 819f..877f -> { demo = !demo; invalidate() }
+                            in 819f..877f -> openMap()
                         }
                     }
                 } else {
@@ -259,7 +318,7 @@ class MainActivity : Activity(), LocationListener, SensorEventListener {
                         when (x) {
                             in 27f..227f -> openSpotify()
                             in 239f..445f -> openBluetooth()
-                            in 650f..875f -> { demo = !demo; invalidate() }
+                            in 650f..875f -> openMap()
                         }
                     }
                 }
