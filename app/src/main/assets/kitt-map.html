@@ -1,1 +1,64 @@
-<!DOCTYPE html><html lang="sl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><style>*{box-sizing:border-box}html,body,#map{margin:0;width:100%;height:100%;background:#060c15;font-family:monospace}#map .leaflet-tile-pane{filter:grayscale(1) invert(1) hue-rotate(160deg) brightness(.7) contrast(1.35)}.leaflet-container{background:#07121c}.leaflet-control-zoom a{background:#111e2d!important;color:#2ee1f5!important;border-color:#ff2842!important}#hud{position:absolute;z-index:1000;left:12px;top:12px;color:#2ee1f5;background:#08101de8;padding:9px;border:1px solid #ff2842;font-size:12px;pointer-events:none}#status{color:#ffb42d}#locate{position:absolute;z-index:1000;right:12px;bottom:16px;background:#3d1526;color:#fff;border:1px solid #ff2842;padding:13px;font: bold 14px monospace}#credit{position:absolute;z-index:1000;left:8px;bottom:5px;color:#b9c8d4;background:#07121ddd;font-size:10px}</style></head><body><div id="map"></div><div id="hud">SILVERG // KITT NAV<br><span id="status">GPS SIGNAL: WAITING</span></div><button id="locate" onclick="locate()">CENTER GPS</button><div id="credit">© OpenStreetMap contributors</div><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script>var map,marker,hasFix=false;function boot(){if(!window.L){document.getElementById('status').textContent='MAP OFFLINE - CHECK INTERNET';return}map=L.map('map',{zoomControl:true}).setView([46.0569,14.5058],11);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map)}function setPosition(lat,lon,accuracy){if(!map)return;var pos=[lat,lon];if(!marker){marker=L.circleMarker(pos,{radius:9,color:'#ff2842',fillColor:'#2ee1f5',fillOpacity:1,weight:3}).addTo(map);map.setView(pos,16)}else marker.setLatLng(pos);hasFix=true;document.getElementById('status').textContent='GPS ACTIVE / ±'+Math.round(accuracy)+'m'}function locate(){if(map&&marker)map.setView(marker.getLatLng(),16);else document.getElementById('status').textContent='WAITING FOR GPS FIX'}boot();</script></body></html>
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+html,body,#map{margin:0;width:100%;height:100%;font-family:Arial,sans-serif;background:#e7e9e9}
+.leaflet-container{background:#e7e9e9;font:15px Arial,sans-serif}
+/* Preserve original readable map colors, labels and road hierarchy. */
+.leaflet-tile-pane{filter:none}
+.leaflet-control-zoom{border:2px solid #14263b!important;box-shadow:0 2px 12px #0004!important}
+.leaflet-control-zoom a{width:44px!important;height:44px!important;line-height:42px!important;font-size:26px!important;background:#101d30!important;color:#fff!important;border-color:#314c64!important}
+#hud{position:absolute;z-index:1000;top:10px;left:10px;right:10px;max-width:360px;background:rgba(7,18,32,.96);color:#f5faff;padding:12px 15px;border:2px solid #e83c56;border-radius:7px;box-shadow:0 3px 14px #0005;pointer-events:none}
+#title{font:bold 17px monospace;letter-spacing:.4px;color:#51ecf4}
+#status{display:block;margin-top:5px;font:bold 13px Arial,sans-serif;color:#fff}
+#locate{position:absolute;z-index:1000;right:12px;bottom:26px;min-height:50px;padding:0 18px;background:#10243a;color:#fff;border:2px solid #f14860;border-radius:8px;box-shadow:0 2px 10px #0006;font:bold 15px Arial,sans-serif}
+#locate:active{background:#1a4660}
+#credit{position:absolute;z-index:1000;left:6px;bottom:3px;padding:3px 5px;background:#fffffff0;color:#1b2b3d;font:11px Arial,sans-serif}
+.leaflet-control-attribution{font:11px Arial,sans-serif!important}
+@media(max-width:370px){#hud{max-width:calc(100% - 20px);padding:10px}#title{font-size:15px}#status{font-size:12px}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="hud"><div id="title">SILVERG // KITT NAV</div><span id="status">GPS: ČAKAM NA SIGNAL ...</span></div>
+<button id="locate" type="button" onclick="locate()">◎ MOJA LOKACIJA</button>
+<div id="credit">© OpenStreetMap contributors</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var map,marker,accuracyCircle,lastPosition=null;
+function boot(){
+  if(!window.L){document.getElementById('status').textContent='ZEMLJEVID NI NA VOLJO – PREVERI INTERNET';return}
+  map=L.map('map',{zoomControl:false,preferCanvas:true}).setView([46.0569,14.5058],11);
+  L.control.zoom({position:'bottomleft'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,attribution:'© OpenStreetMap contributors',detectRetina:true
+  }).addTo(map);
+  if(lastPosition)setPosition(lastPosition[0],lastPosition[1],lastPosition[2]);
+}
+function setPosition(lat,lon,accuracy){
+  if(!isFinite(lat)||!isFinite(lon))return;
+  lastPosition=[lat,lon,accuracy];
+  if(!map)return;
+  var pos=[lat,lon];
+  if(!marker){
+    marker=L.circleMarker(pos,{radius:10,color:'#a71934',fillColor:'#25e5ef',fillOpacity:1,weight:3}).addTo(map);
+    accuracyCircle=L.circle(pos,{radius:Math.max(accuracy||0,1),color:'#118d9d',fillColor:'#2fe5ee',fillOpacity:.09,weight:1}).addTo(map);
+    map.setView(pos,16);
+  }else{
+    marker.setLatLng(pos);
+    accuracyCircle.setLatLng(pos).setRadius(Math.max(accuracy||0,1));
+  }
+  document.getElementById('status').textContent='GPS AKTIVEN • NATANČNOST ±'+Math.round(accuracy||0)+' m';
+}
+function locate(){
+  if(map&&marker)map.setView(marker.getLatLng(),Math.max(map.getZoom(),16));
+  else document.getElementById('status').textContent='ČAKAM NA GPS LOKACIJO ...';
+}
+boot();
+</script>
+</body>
+</html>
